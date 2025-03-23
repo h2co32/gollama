@@ -1,61 +1,104 @@
+// Package middleware provides HTTP middleware components for authentication and other cross-cutting concerns.
+//
+// This package contains middleware that can be used with standard Go HTTP servers
+// to add authentication, logging, rate limiting, and other functionality to HTTP handlers.
+//
+// Example usage:
+//
+//	// Create a new auth middleware for JWT authentication
+//	authMiddleware := middleware.NewAuthMiddleware(middleware.AuthOptions{
+//		AuthType:   middleware.AuthTypeJWT,
+//		JWTSecret:  "your-jwt-secret",
+//		HMACSecret: "your-hmac-secret",
+//	})
+//
+//	// Use the middleware with an HTTP handler
+//	http.Handle("/protected", authMiddleware.Middleware(http.HandlerFunc(protectedHandler)))
 package middleware
 
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
-	"strings"
 
-	"github.com/h2co32/gollama/internal/security"
-	"github.com/h2co32/gollama/internal/utils"
+	"github.com/h2co32/gollama/pkg/auth"
 
 	"github.com/golang-jwt/jwt/v4"
 )
+
+// Version represents the current package version following semantic versioning.
+const Version = "1.0.0"
 
 // Context keys for adding authentication data to the request context
 type contextKey string
 
 const (
+	// UserContextKey is the context key for storing user information
 	UserContextKey contextKey = "user"
-	AuthHeaderKey  string     = "Authorization"
-	HMACHeaderKey  string     = "X-Signature"
+	
+	// AuthHeaderKey is the HTTP header key for the Authorization header
+	AuthHeaderKey string = "Authorization"
+	
+	// HMACHeaderKey is the HTTP header key for the HMAC signature
+	HMACHeaderKey string = "X-Signature"
 )
 
-// AuthMiddleware manages JWT and HMAC authentication for protected routes
-type AuthMiddleware struct {
-	authType   string
-	jwtSecret  string
-	hmacSecret string
+// Authentication types
+const (
+	// AuthTypeJWT specifies JWT token authentication
+	AuthTypeJWT = "jwt"
+	
+	// AuthTypeHMAC specifies HMAC signature authentication
+	AuthTypeHMAC = "hmac"
+)
+
+// AuthOptions configures the AuthMiddleware.
+type AuthOptions struct {
+	// AuthType specifies the authentication type (jwt or hmac)
+	AuthType string
+	
+	// JWTSecret is the secret key for JWT token validation
+	JWTSecret string
+	
+	// HMACSecret is the secret key for HMAC signature validation
+	HMACSecret string
+	
+	// ErrorHandler is an optional custom error handler
+	ErrorHandler func(w http.ResponseWriter, err error)
 }
 
-// NewAuthMiddleware initializes an AuthMiddleware with specified authentication type and keys
-func NewAuthMiddleware(authType, jwtSecret, hmacSecret string) *AuthMiddleware {
+// AuthMiddleware manages JWT and HMAC authentication for protected routes.
+type AuthMiddleware struct {
+	options AuthOptions
+}
+
+// NewAuthMiddleware initializes an AuthMiddleware with specified options.
+func NewAuthMiddleware(options AuthOptions) *AuthMiddleware {
 	return &AuthMiddleware{
-		authType:   authType,
-		jwtSecret:  jwtSecret,
-		hmacSecret: hmacSecret,
+		options: options,
 	}
 }
 
-// Middleware intercepts HTTP requests and validates authentication headers
+// Middleware intercepts HTTP requests and validates authentication headers.
 func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var err error
 
-		if am.authType == "jwt" {
+		switch am.options.AuthType {
+		case AuthTypeJWT:
 			err = am.handleJWTAuth(w, r)
-		} else if am.authType == "hmac" {
+		case AuthTypeHMAC:
 			err = am.handleHMACAuth(w, r)
-		} else {
-			utils.JSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "unsupported authentication method"})
-			return
+		default:
+			err = fmt.Errorf("unsupported authentication method: %s", am.options.AuthType)
 		}
 
 		if err != nil {
-			utils.LogError("AuthMiddleware", err)
-			utils.JSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			am.handleError(w, err)
 			return
 		}
 
@@ -63,14 +106,26 @@ func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-// handleJWTAuth verifies JWT tokens and adds user claims to the request context
-func (am *AuthMiddleware) handleJWTAuth(w http.ResponseWriter, r *http.Request) error {
-	tokenString := extractBearerToken(r.Header.Get(AuthHeaderKey))
-	if tokenString == "" {
-		return fmt.Errorf("missing or invalid authorization header")
+// handleError processes authentication errors.
+func (am *AuthMiddleware) handleError(w http.ResponseWriter, err error) {
+	if am.options.ErrorHandler != nil {
+		am.options.ErrorHandler(w, err)
+		return
 	}
 
-	claims, err := security.ValidateJWT(am.jwtSecret, tokenString)
+	// Default error handling
+	log.Printf("Authentication error: %v", err)
+	JSONResponse(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+}
+
+// handleJWTAuth verifies JWT tokens and adds user claims to the request context.
+func (am *AuthMiddleware) handleJWTAuth(w http.ResponseWriter, r *http.Request) error {
+	tokenString, err := auth.ExtractBearerToken(r.Header.Get(AuthHeaderKey))
+	if err != nil {
+		return fmt.Errorf("missing or invalid authorization header: %w", err)
+	}
+
+	claims, err := auth.ValidateJWT(am.options.JWTSecret, tokenString)
 	if err != nil {
 		return fmt.Errorf("invalid JWT token: %w", err)
 	}
@@ -81,7 +136,7 @@ func (am *AuthMiddleware) handleJWTAuth(w http.ResponseWriter, r *http.Request) 
 	return nil
 }
 
-// handleHMACAuth verifies HMAC signatures for request validation
+// handleHMACAuth verifies HMAC signatures for request validation.
 func (am *AuthMiddleware) handleHMACAuth(w http.ResponseWriter, r *http.Request) error {
 	signature := r.Header.Get(HMACHeaderKey)
 	if signature == "" {
@@ -93,21 +148,14 @@ func (am *AuthMiddleware) handleHMACAuth(w http.ResponseWriter, r *http.Request)
 		return fmt.Errorf("failed to read request body: %w", err)
 	}
 
-	if !security.ValidateHMAC(am.hmacSecret, string(bodyBytes), signature) {
+	if !auth.ValidateHMAC(am.options.HMACSecret, string(bodyBytes), signature) {
 		return fmt.Errorf("invalid HMAC signature")
 	}
 	return nil
 }
 
-// extractBearerToken extracts the JWT token from the Authorization header
-func extractBearerToken(authHeader string) string {
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		return ""
-	}
-	return strings.TrimPrefix(authHeader, "Bearer ")
-}
 
-// getRequestBody reads the request body for HMAC validation
+// getRequestBody reads the request body for HMAC validation.
 func getRequestBody(r *http.Request) ([]byte, error) {
 	if r.Body == nil {
 		return nil, fmt.Errorf("request body is empty")
@@ -122,8 +170,20 @@ func getRequestBody(r *http.Request) ([]byte, error) {
 	return bodyBytes, nil
 }
 
-// GetUserFromContext retrieves JWT claims from the request context
+// GetUserFromContext retrieves JWT claims from the request context.
 func GetUserFromContext(ctx context.Context) (jwt.MapClaims, bool) {
 	claims, ok := ctx.Value(UserContextKey).(jwt.MapClaims)
 	return claims, ok
+}
+
+// JSONResponse sends a JSON response with the specified status code and data.
+func JSONResponse(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	
+	if data != nil {
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			log.Printf("Error encoding JSON response: %v", err)
+		}
+	}
 }

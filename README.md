@@ -1,230 +1,203 @@
 # **Gollama**
 
-Gollama is a scalable, high-performance Golang application with built-in support for authentication, rate limiting, automatic scaling, tracing, and monitoring. Designed for production use, Gollama includes middleware for **JWT and HMAC authentication**, **OpenTelemetry tracing**, **Prometheus metrics**, **token bucket rate limiting**, **automatic worker scaling**, and **retry logic**.
+Gollama is a comprehensive Go library that provides essential components for building scalable, high-performance applications. It offers modular packages for authentication, rate limiting, observability, and more, designed to be used independently or together.
 
 ## **Table of Contents**
 
+- [Overview](#overview)
 - [Features](#features)
-- [Requirements](#requirements)
 - [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Components](#components)
-- [Endpoints](#endpoints)
-- [Example Usage](#example-usage)
+- [Library Packages](#library-packages)
+- [Examples](#examples)
+- [Versioning](#versioning)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## **Overview**
+
+Gollama started as an application but has been refactored into a modular library to make its powerful components available for use in any Go project. Each package follows Go best practices, is well-documented, and includes comprehensive examples.
 
 ---
 
 ## **Features**
 
-- **JWT and HMAC Authentication**: Middleware for secure access control.
-- **Rate Limiting**: Token bucket rate limiter to control request rates.
-- **Automatic Worker Scaling**: Autoscaler that adjusts worker counts based on system load.
-- **Distributed Tracing**: Integrated with OpenTelemetry for end-to-end tracing.
-- **Metrics and Monitoring**: Prometheus metrics collection for real-time monitoring.
-- **Retry Logic**: Exponential backoff with jitter for handling transient failures.
+- **Modular Design**: Use only the components you need
+- **Well-Documented API**: Comprehensive documentation and examples
+- **Production-Ready**: Designed for reliability and performance
+- **Semantic Versioning**: Clear compatibility guarantees
+- **Minimal Dependencies**: Each package has only the dependencies it needs
 
-## **Requirements**
+### **Core Functionality**
 
-- Go 1.17+
-- [Prometheus](https://prometheus.io/) for metrics collection
-- [OpenTelemetry](https://opentelemetry.io/) for tracing
-- Redis (optional, if using distributed caching)
-- TLS certificate and key files for secure connections (for production use)
+- **Authentication**: JWT and HMAC authentication utilities
+- **Rate Limiting**: Token bucket rate limiter to control request rates
+- **Observability**: OpenTelemetry integration for distributed tracing
+- **Middleware**: HTTP middleware for authentication and other cross-cutting concerns
+- **Retry Logic**: Exponential backoff with jitter for handling transient failures
+
+---
 
 ## **Installation**
 
-1. **Clone the Repository**:
+To use Gollama in your project, install it using Go modules:
 
-   ```bash
-   git clone https://github.com/yourusername/gollama.git
-   cd gollama
-   ```
+```bash
+go get github.com/h2co32/gollama
+```
 
-2. **Install Dependencies**:
+Or add it to your `go.mod` file:
 
-   Install required Go modules:
+```
+require github.com/h2co32/gollama v1.0.0
+```
 
-   ```bash
-   go mod download
-   ```
-
-3. **Environment Setup**:
-
-   Set up environment variables for authentication secrets, TLS paths, and other configurations (if needed).
-
----
-
-## **Configuration**
-
-Edit `constants.go` for default values, and customize the following parameters as needed:
-
-- **Authentication**:
-  - `JWTSecretKey`: The secret key used for JWT signing.
-  - `HMACSecretKey`: The secret key used for HMAC signatures.
-
-- **Rate Limiter**:
-  - `DefaultRateLimitCapacity`: Max tokens allowed in the token bucket.
-  - `DefaultRefillRate`: Rate at which tokens are added.
-
-- **Autoscaler**:
-  - `DefaultMinWorkers`: Minimum workers to keep active.
-  - `DefaultMaxWorkers`: Maximum workers allowed.
-  - `DefaultCPUThreshold`: CPU usage threshold to trigger scaling.
-
-- **Retry**:
-  - `DefaultMaxRetries`: Max retry attempts.
-  - `DefaultInitialBackoff`: Initial backoff duration.
-  - `DefaultMaxBackoff`: Maximum backoff duration.
-
----
-
-## **Usage**
-
-### **Starting the Server**
-
-1. **Run the Server**:
-
-   ```bash
-   go run main.go
-   ```
-
-2. **Access API Endpoints**:
-
-   The server runs on `http://localhost:8080` by default. Access endpoints like `/protected` and `/metrics` for testing.
-
----
-
-## **Components**
-
-### **1. Authentication Middleware**
-
-- **File**: `auth_middleware.go`
-- **Functionality**: Validates requests using **JWT** or **HMAC** authentication.
-- **Usage**:
-  - Set the `authType` as "jwt" or "hmac" when initializing `AuthMiddleware`.
-  - Add the middleware to endpoints requiring authentication.
-
-### **2. Rate Limiting**
-
-- **File**: `rate_limiter.go`
-- **Functionality**: Controls request rates using a token bucket algorithm.
-- **Usage**:
-  - Configure `DefaultRateLimitCapacity` and `DefaultRefillRate` in `constants.go`.
-  - Call `Allow` or `Wait` on the `RateLimiter` instance to apply rate limiting.
-
-### **3. Autoscaler**
-
-- **File**: `autoscaler.go`
-- **Functionality**: Automatically scales worker pools based on CPU usage.
-- **Usage**:
-  - Define min/max workers, CPU thresholds, and scaling intervals.
-  - Use `Start()` and `Stop()` to manage the autoscaler.
-
-### **4. Tracing and Observability**
-
-- **Files**: `tracing.go`, `prometheus.go`
-- **Functionality**: Provides **OpenTelemetry distributed tracing** and **Prometheus metrics**.
-- **Usage**:
-  - Configure an OTLP endpoint for tracing.
-  - Access Prometheus metrics at `/metrics` (default port 2112).
-
-### **5. Retry Logic**
-
-- **File**: `retry.go`
-- **Functionality**: Implements exponential backoff with optional jitter.
-- **Usage**:
-  - Pass an operation to `Retry()` with configuration for retries and backoff duration.
-
-### **6. Utility Functions and Constants**
-
-- **Files**: `constants.go`, `helpers.go`
-- **Functionality**: Provides shared constants and helper functions for logging, JSON handling, and error management.
-- **Usage**: Call helper functions for logging, JSON responses, etc., throughout the application.
-
----
-
-## **Endpoints**
-
-### **Protected Endpoints**
-
-- **`/protected`** (requires JWT or HMAC)
-  - **Method**: GET
-  - **Description**: Protected route that requires JWT or HMAC authentication.
-
-### **Monitoring and Metrics**
-
-- **`/metrics`**
-  - **Method**: GET
-  - **Description**: Exposes Prometheus metrics for real-time monitoring.
-
-- **`/health`**
-  - **Method**: GET
-  - **Description**: Health check endpoint to verify service status.
-
----
-
-## **Example Usage**
-
-### **JWT Authentication Example**
-
-1. **Generate JWT**:
-
-   ```go
-   claims := jwt.MapClaims{"username": "user1", "exp": time.Now().Add(30 * time.Minute).Unix()}
-   token, err := security.GenerateJWT("supersecretkey", claims)
-   fmt.Println("JWT:", token)
-   ```
-
-2. **Access Protected Endpoint**:
-
-   ```http
-   GET /protected HTTP/1.1
-   Authorization: Bearer <jwt_token>
-   ```
-
-### **Rate Limiting Example**
+Then import only the packages you need:
 
 ```go
-limiter := rate_limiter.NewRateLimiter(5, time.Second, 1)
-for i := 0; i < 10; i++ {
-    if limiter.Allow() {
-        fmt.Println("Request allowed")
-    } else {
-        fmt.Println("Rate limit exceeded, waiting for token")
-        limiter.Wait(2 * time.Second)
-    }
+import (
+    "github.com/h2co32/gollama/pkg/auth"
+    "github.com/h2co32/gollama/pkg/retry"
+    // Import other packages as needed
+)
+```
+
+---
+
+## **Library Packages**
+
+### **pkg/auth**
+
+Authentication utilities for JWT and HMAC authentication.
+
+```go
+// Generate a JWT token
+claims := map[string]interface{}{"user_id": 123, "role": "admin"}
+token, err := auth.GenerateJWT("your-secret-key", claims)
+
+// Validate a JWT token
+claims, err := auth.ValidateJWT("your-secret-key", token)
+
+// Generate an HMAC signature
+signature := auth.GenerateHMAC("your-hmac-key", "data-to-sign")
+```
+
+### **pkg/middleware**
+
+HTTP middleware components for authentication and other cross-cutting concerns.
+
+```go
+// Create a new auth middleware for JWT authentication
+authMiddleware := middleware.NewAuthMiddleware(middleware.AuthOptions{
+    AuthType:   middleware.AuthTypeJWT,
+    JWTSecret:  "your-jwt-secret",
+    HMACSecret: "your-hmac-secret",
+})
+
+// Use the middleware with an HTTP handler
+http.Handle("/protected", authMiddleware.Middleware(http.HandlerFunc(protectedHandler)))
+```
+
+### **pkg/ratelimiter**
+
+Token bucket rate limiter for controlling request rates.
+
+```go
+// Create a rate limiter with 10 tokens per second and a burst capacity of 20
+limiter := ratelimiter.New(10, time.Second, 20)
+
+// Check if an operation is allowed
+if limiter.Allow() {
+    // Perform the operation
+} else {
+    // Operation not allowed, handle accordingly
+}
+
+// Or wait until an operation is allowed (with timeout)
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+if err := limiter.Wait(ctx); err == nil {
+    // Perform the operation
 }
 ```
 
-### **Autoscaling Example**
+### **pkg/retry**
+
+Flexible retry mechanism with exponential backoff and jitter.
 
 ```go
-scaler := autoscaler.NewAutoScaler(2, 10, 0.75, 2*time.Second, 2*time.Second)
-scaler.Start()
-time.Sleep(20 * time.Second)
-scaler.Stop()
+// Configure retry options
+opts := retry.Options{
+    MaxAttempts:    5,
+    InitialBackoff: 100 * time.Millisecond,
+    MaxBackoff:     10 * time.Second,
+    Jitter:         true,
+}
+
+// Execute an operation with retry
+err := retry.Do(opts, func() error {
+    return makeNetworkRequest()
+})
 ```
 
-### **Tracing Example**
+### **pkg/observability**
 
-1. **Initialize Tracer**:
+Tools for distributed tracing with OpenTelemetry.
 
-   ```go
-   tracerProvider, _ := observability.InitTracer("gollama-service", "localhost:4318")
-   defer tracerProvider.ShutdownTracer(context.Background())
-   ```
+```go
+// Initialize a tracer provider
+tp, err := observability.NewTracerProvider("my-service", "http://localhost:4318")
+if err != nil {
+    log.Fatalf("Failed to initialize tracer: %v", err)
+}
+defer tp.Shutdown(context.Background())
 
-2. **Start a Span**:
+// Create a span
+ctx, span := tp.StartSpan(context.Background(), "my-operation")
+defer span.End()
 
-   ```go
-   ctx, span := tracerProvider.StartSpan(context.Background(), "example-operation")
-   defer tracerProvider.EndSpan(span, nil)
-   ```
+// Add attributes to the span
+observability.AddSpanAttributes(ctx, attribute.String("key", "value"))
+```
+
+---
+
+## **Examples**
+
+Each package includes comprehensive examples in the `pkg/examples` directory:
+
+- **Authentication**: JWT and HMAC authentication examples
+- **Middleware**: HTTP middleware usage examples
+- **Rate Limiting**: Rate limiter usage in various scenarios
+- **Retry Logic**: Retry patterns for different use cases
+- **Observability**: Tracing examples for HTTP requests and error handling
+
+To run an example:
+
+```go
+import "github.com/h2co32/gollama/pkg/examples"
+
+func main() {
+    examples.RetryBasicExample()
+    examples.AuthJWTExample()
+    // Run other examples as needed
+}
+```
+
+---
+
+## **Versioning**
+
+Gollama follows [Semantic Versioning](https://semver.org/). See [VERSIONING.md](VERSIONING.md) for details on our versioning strategy and API stability guarantees.
+
+For a list of changes in each release, see the [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
 ## **Contributing**
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. **Fork the repository** and create a new branch for your feature or bugfix.
 2. **Make your changes**, write tests, and ensure everything passes.
@@ -238,11 +211,4 @@ This project is licensed under the MIT License.
 
 ---
 
-## **Contact**
-
-For questions, issues, or suggestions, please contact [your_email@example.com](mailto:your_email@example.com).
-
----
-
-This README provides a thorough guide to using and extending Gollama, enabling seamless development, secure API access, and enhanced performance monitoring.
-
+This README provides an overview of the Gollama library. For detailed documentation on each package, refer to the package-level documentation and examples.
