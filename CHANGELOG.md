@@ -2,17 +2,17 @@
 
 All notable changes to the Gollama project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
 
 ### Added
 - Initial library structure with modular packages
 - Comprehensive documentation for all public APIs
 - Examples for each package showing common use cases
+- GitHub Actions workflows for CI/CD
+- Automated release process with GoReleaser
+- Version information accessible via CLI flag
 
-## [1.0.0] - 2025-03-23
+## [0.1.0] - 2025-03-23
 
 ### Added
 - Public API in `pkg/` directory with the following packages:
@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Removed direct dependencies between public packages
 
-## [0.9.0] - 2025-03-01
+## [0.0.1] - 2025-03-01
 
 ### Added
 - Initial implementation of Gollama as an application

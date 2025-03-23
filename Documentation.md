@@ -17,7 +17,7 @@ Gollama offers the following core features:
 ### **Installation**
 
 ```sh
-go get github.com/yourusername/gollama
+go get github.com/h2co32/gollama
 ```
 
 After installing, import the relevant packages:

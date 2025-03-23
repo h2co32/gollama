@@ -30,7 +30,7 @@ func ObservabilityBasicExample() {
 	// Add attributes to the span
 	observability.AddSpanAttributes(ctx,
 		attribute.String("environment", "development"),
-		attribute.Int("user_id", 123),
+		attribute.Float64("user_id", 123),
 	)
 
 	// Add an event to the span

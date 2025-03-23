@@ -10,6 +10,7 @@ Gollama is a comprehensive Go library that provides essential components for bui
 - [Library Packages](#library-packages)
 - [Examples](#examples)
 - [Versioning](#versioning)
+- [Releases](#releases)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -192,6 +193,32 @@ func main() {
 Gollama follows [Semantic Versioning](https://semver.org/). See [VERSIONING.md](VERSIONING.md) for details on our versioning strategy and API stability guarantees.
 
 For a list of changes in each release, see the [CHANGELOG.md](CHANGELOG.md).
+
+## **Releases**
+
+Gollama uses GitHub Actions for continuous integration and automated releases. Pre-built binaries for multiple platforms are available on the [Releases](https://github.com/h2co32/gollama/releases) page.
+
+### **Installing from Releases**
+
+1. Download the appropriate binary for your platform from the [Releases](https://github.com/h2co32/gollama/releases) page
+2. Extract the archive (if applicable)
+3. Move the binary to a location in your PATH
+
+```bash
+# Example for Linux/macOS
+wget https://github.com/h2co32/gollama/releases/download/v1.0.0/gollama_Linux_x86_64.tar.gz
+tar -xzf gollama_Linux_x86_64.tar.gz
+sudo mv gollama /usr/local/bin/
+```
+
+### **Creating a Release**
+
+For maintainers who want to create a new release:
+
+1. Update the CHANGELOG.md with the changes in the new version
+2. Tag the commit with the new version: `git tag v1.0.0`
+3. Push the tag to GitHub: `git push origin v1.0.0`
+4. The GitHub Actions workflow will automatically build and publish the release
 
 ---
 
