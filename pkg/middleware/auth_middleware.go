@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"gollama/security"
-	"gollama/utils"
+	"github.com/h2co32/gollama/internal/security"
+	"github.com/h2co32/gollama/internal/utils"
 
 	"github.com/golang-jwt/jwt/v4"
 )

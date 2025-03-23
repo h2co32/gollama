@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gollama/internal/models"
+	"github.com/h2co32/gollama/internal/models"
 )
 
 func main() {

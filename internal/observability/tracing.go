@@ -6,10 +6,11 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -27,9 +28,9 @@ func InitTracer(serviceName, otlpEndpoint string) (*TracerProvider, error) {
 	}
 
 	// Set up trace provider
-	tp := trace.NewTracerProvider(
-		trace.WithBatcher(exporter),
-		trace.WithResource(resource.NewSchemaless(
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resource.NewSchemaless(
 			attribute.String("service.name", serviceName),
 		)),
 	)
@@ -50,16 +51,16 @@ func (tp *TracerProvider) StartSpan(ctx context.Context, spanName string, opts .
 func (tp *TracerProvider) EndSpan(span trace.Span, err error) {
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(trace.StatusCodeError, err.Error())
+		span.SetStatus(codes.Error, err.Error())
 	} else {
-		span.SetStatus(trace.StatusCodeOk, "success")
+		span.SetStatus(codes.Ok, "success")
 	}
 	span.End()
 }
 
 // ShutdownTracer flushes any pending spans and stops the tracer provider.
 func (tp *TracerProvider) ShutdownTracer(ctx context.Context) error {
-	if tpProvider, ok := otel.GetTracerProvider().(*trace.TracerProvider); ok {
+	if tpProvider, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider); ok {
 		return tpProvider.Shutdown(ctx)
 	}
 	return nil
