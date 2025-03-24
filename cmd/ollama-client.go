@@ -26,11 +26,17 @@ func main() {
 
 	switch *action {
 	case "download":
-		client.DownloadModel(models.DownloadModelRequest{Model: *model})
+		if err := client.DownloadModel(models.DownloadModelRequest{Model: *model}); err != nil {
+			fmt.Printf("Error downloading model: %v\n", err)
+			os.Exit(1)
+		}
 	case "preload":
 		client.PreloadModels([]string{*model})
 	case "fine-tune":
-		client.FineTuneModel(models.ModelFineTuningRequest{Dataset: "custom-dataset", ModelVersion: *model})
+		if err := client.FineTuneModel(models.ModelFineTuningRequest{Dataset: "custom-dataset", ModelVersion: *model}); err != nil {
+			fmt.Printf("Error fine-tuning model: %v\n", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Println("Invalid action provided")
 	}

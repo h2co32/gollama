@@ -22,7 +22,9 @@ type ModelManager struct {
 
 // NewModelManager initializes a new ModelManager with the specified model storage directory.
 func NewModelManager(modelDir string) *ModelManager {
-	os.MkdirAll(modelDir, 0755) // Ensure the model directory exists
+	if err := os.MkdirAll(modelDir, 0755); err != nil {
+		fmt.Printf("Warning: failed to create model directory: %v\n", err)
+	}
 	return &ModelManager{
 		modelDir:       modelDir,
 		currentVersion: make(map[string]string),
